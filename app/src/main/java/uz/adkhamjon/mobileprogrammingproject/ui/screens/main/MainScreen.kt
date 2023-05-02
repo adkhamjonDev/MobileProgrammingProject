@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -23,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.items
@@ -37,6 +39,8 @@ import com.ramcosta.composedestinations.annotation.RootNavGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import kotlinx.coroutines.launch
 import uz.adkhamjon.mobileprogrammingproject.data.remote.dto.Hit
+import uz.adkhamjon.mobileprogrammingproject.ui.screens.destinations.ImageScreenDestination
+import uz.adkhamjon.mobileprogrammingproject.ui.screens.image.ImageScreen
 
 @RootNavGraph(start = true)
 @Destination
@@ -46,14 +50,13 @@ fun MainScreen(
     mainViewModel: MainViewModel = hiltViewModel()
 ) {
     Column {
-
         Toolbar(info = {
 
         })
         TabViewPager(
             mainViewModel,
             item = {
-
+                navigator.navigate(ImageScreenDestination(it))
             }
         )
     }
@@ -104,6 +107,9 @@ fun TabViewPager(
     val pagerState = rememberPagerState(pageCount = tabs.size)
     val coroutineScope = rememberCoroutineScope()
 
+    val map = mutableMapOf<Int, LazyPagingItems<Hit>>()
+    val rememberedMap by rememberSaveable { mutableStateOf(map) }
+
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -126,6 +132,8 @@ fun TabViewPager(
                 .wrapContentHeight()
         ) {
             tabs.forEachIndexed { index, s ->
+                val images = mainViewModel.image(s).collectAsLazyPagingItems()
+                rememberedMap[index] = images
                 Tab(
                     selected = pagerState.currentPage == index,
                     onClick = {
@@ -142,33 +150,45 @@ fun TabViewPager(
             }
         }
 
+
         HorizontalPager(state = pagerState) { page ->
-            val images = mainViewModel.image(tabs[page]).collectAsLazyPagingItems()
-            ImagesScreen(images)
+
+            ImagesScreen(rememberedMap[page]!!) {
+                item.invoke(it!!)
+            }
+
         }
     }
 }
 
 @Composable
 fun ImagesScreen(
-    images: LazyPagingItems<Hit>
+    images: LazyPagingItems<Hit>,
+    onclick: (String?) -> Unit
 ) {
 
     LazyVerticalGrid(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White),
         columns = GridCells.Fixed(3)
     ) {
         itemsGrid(images) { hit ->
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp)
-                    .background(Color(0xFF0C0C0C))
+                    .height(170.dp)
+                    .background(Color.White)
+                    .clickable {
+                        onclick.invoke(hit?.webformatURL)
+                    },
             ) {
                 AsyncImage(
                     model = hit?.webformatURL,
                     contentDescription = "Image item",
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(0.5.dp),
                     contentScale = ContentScale.Crop,
                 )
             }
