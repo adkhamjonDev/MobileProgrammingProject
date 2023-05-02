@@ -1,8 +1,11 @@
 package uz.adkhamjon.mobileprogrammingproject.di.module
 
+import android.content.Context
+import com.chuckerteam.chucker.api.ChuckerInterceptor
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
@@ -23,20 +26,29 @@ object DIModule {
     @Singleton
     @Provides
     fun provideRetrofit(
-        gsonGsonConverterFactory: GsonConverterFactory,
+        gsonConverterFactory: GsonConverterFactory,
         builder: OkHttpClient
     ): Retrofit {
+
         return Retrofit.Builder()
             .baseUrl("https://pixabay.com/api/")
             .client(builder)
-            .addConverterFactory(gsonGsonConverterFactory)
+            .addConverterFactory(gsonConverterFactory)
             .build()
     }
 
     @Singleton
     @Provides
-    fun provideOkHttpClient(): OkHttpClient {
+    fun provideOkHttpClient(
+        @ApplicationContext context: Context
+    ): OkHttpClient {
+        val chuckInterceptor = ChuckerInterceptor.Builder(context)
+            .maxContentLength(500_000L)
+            .redactHeaders("Content-Type", "application/json")
+            .alwaysReadResponseBody(true)
+            .build()
         return OkHttpClient.Builder()
+            .addInterceptor(chuckInterceptor)
             .build()
     }
 

@@ -2,15 +2,11 @@ package uz.adkhamjon.mobileprogrammingproject.ui.screens.main
 
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
@@ -27,8 +23,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.items
 import coil.compose.AsyncImage
+import coil.compose.rememberImagePainter
 import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.pagerTabIndicatorOffset
@@ -36,11 +35,8 @@ import com.google.accompanist.pager.rememberPagerState
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootNavGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import uz.adkhamjon.mobileprogrammingproject.data.remote.dto.Hit
-import kotlin.math.log
-
 
 @RootNavGraph(start = true)
 @Destination
@@ -49,21 +45,14 @@ fun MainScreen(
     navigator: DestinationsNavigator,
     mainViewModel: MainViewModel = hiltViewModel()
 ) {
-    var type by remember {
-        mutableStateOf("All")
-    }
-    val images = mainViewModel.getImages(type).collectAsLazyPagingItems()
-
     Column {
+
         Toolbar(info = {
 
         })
-        Log.d("TTT", "MainScreen: ${images.itemSnapshotList.items}")
         TabViewPager(
-            images.itemSnapshotList.items,
-            {
-                type = it
-            }, item = {
+            mainViewModel,
+            item = {
 
             }
         )
@@ -108,8 +97,7 @@ fun Toolbar(
 @OptIn(ExperimentalPagerApi::class)
 @Composable
 fun TabViewPager(
-    imagesList: List<Hit> = emptyList(),
-    type: (String) -> Unit,
+    mainViewModel: MainViewModel,
     item: (String) -> Unit
 ) {
     val tabs = listOf("All", "Animals", "Buildings", "Food", "Nature", "People", "Technology")
@@ -153,32 +141,75 @@ fun TabViewPager(
                 )
             }
         }
+
         HorizontalPager(state = pagerState) { page ->
-            ImagesScreen(imagesList)
-            type.invoke(tabs[page])
+            val images = mainViewModel.image(tabs[page]).collectAsLazyPagingItems()
+            ImagesScreen(images)
         }
     }
 }
 
 @Composable
 fun ImagesScreen(
-    list: List<Hit> = emptyList(),
+    images: LazyPagingItems<Hit>
 ) {
-    LazyVerticalGrid(columns = GridCells.Fixed(3)) {
-        items(list.size) { index ->
+
+    LazyVerticalGrid(
+        modifier = Modifier.fillMaxSize(),
+        columns = GridCells.Fixed(3)
+    ) {
+        itemsGrid(images) { hit ->
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(100.dp)
+                    .height(120.dp)
                     .background(Color(0xFF0C0C0C))
             ) {
                 AsyncImage(
-                    model = list[index].webformatURL,
+                    model = hit?.webformatURL,
                     contentDescription = "Image item",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                 )
             }
         }
+    }
+}
+
+fun <T : Any> LazyGridScope.itemsGrid(
+    items: LazyPagingItems<T>,
+    key: ((item: T) -> Any)? = null,
+    span: ((item: T) -> GridItemSpan)? = null,
+    contentType: ((item: T) -> Any)? = null,
+    itemContent: @Composable LazyGridItemScope.(value: T?) -> Unit
+) {
+    items(
+        count = items.itemCount,
+        key = if (key == null) null else { index ->
+            val item = items.peek(index)
+            if (item != null) {
+                key(item)
+            }
+        },
+        span = if (span == null) null else { index ->
+            val item = items.peek(index)
+            if (item == null) {
+                GridItemSpan(1)
+            } else {
+                span(item)
+            }
+        },
+        contentType = if (contentType == null) {
+            { null }
+        } else { index ->
+            val item = items.peek(index)
+            if (item == null) {
+                null
+            } else {
+                contentType(item)
+            }
+        }
+    ) { index ->
+        itemContent(items[index])
     }
 }
