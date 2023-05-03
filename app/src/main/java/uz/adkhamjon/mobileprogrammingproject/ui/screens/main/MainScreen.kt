@@ -37,6 +37,8 @@ import com.google.accompanist.pager.rememberPagerState
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootNavGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import uz.adkhamjon.mobileprogrammingproject.data.remote.dto.Hit
 import uz.adkhamjon.mobileprogrammingproject.ui.screens.destinations.ImageScreenDestination
@@ -107,13 +109,9 @@ fun TabViewPager(
     val pagerState = rememberPagerState(pageCount = tabs.size)
     val coroutineScope = rememberCoroutineScope()
 
-    val map = mutableMapOf<Int, LazyPagingItems<Hit>>()
-    val rememberedMap by rememberSaveable { mutableStateOf(map) }
-
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-
         ScrollableTabRow(
             selectedTabIndex = pagerState.currentPage,
             divider = {
@@ -132,8 +130,6 @@ fun TabViewPager(
                 .wrapContentHeight()
         ) {
             tabs.forEachIndexed { index, s ->
-                val images = mainViewModel.image(s).collectAsLazyPagingItems()
-                rememberedMap[index] = images
                 Tab(
                     selected = pagerState.currentPage == index,
                     onClick = {
@@ -149,14 +145,11 @@ fun TabViewPager(
                 )
             }
         }
-
-
         HorizontalPager(state = pagerState) { page ->
-
-            ImagesScreen(rememberedMap[page]!!) {
+            val images = mainViewModel.images(tabs[page]).collectAsLazyPagingItems()
+            ImagesScreen(images) {
                 item.invoke(it!!)
             }
-
         }
     }
 }
@@ -166,7 +159,6 @@ fun ImagesScreen(
     images: LazyPagingItems<Hit>,
     onclick: (String?) -> Unit
 ) {
-
     LazyVerticalGrid(
         modifier = Modifier
             .fillMaxSize()
@@ -188,7 +180,7 @@ fun ImagesScreen(
                     contentDescription = "Image item",
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(0.5.dp),
+                        .padding(0.8.dp),
                     contentScale = ContentScale.Crop,
                 )
             }

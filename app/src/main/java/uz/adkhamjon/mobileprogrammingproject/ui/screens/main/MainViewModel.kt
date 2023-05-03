@@ -20,15 +20,11 @@ class MainViewModel @Inject constructor(
     private val imageRepository: ImageRepository
 ) : ViewModel() {
 
-    private fun images(category: String) = Pager(
+    fun images(category: String) = Pager(
         PagingConfig(pageSize = 10)
     )
     {
         ImagePagination(imageRepository, category = category)
-    }
-
-    fun image(type: String) = images(type).flow.cachedIn(viewModelScope)
-
-
+    }.flow.cachedIn(viewModelScope)
 
 }

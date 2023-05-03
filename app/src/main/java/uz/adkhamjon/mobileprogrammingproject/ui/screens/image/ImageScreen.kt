@@ -1,8 +1,16 @@
 package uz.adkhamjon.mobileprogrammingproject.ui.screens.image
 
+import android.app.WallpaperManager
+import android.content.Context
 import android.content.Intent
 import android.content.Intent.*
+import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
+import android.os.Build
+import android.widget.Toast
 import androidx.annotation.DrawableRes
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -11,10 +19,7 @@ import androidx.compose.material.Card
 import androidx.compose.material.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -27,12 +32,25 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat.startActivity
+import coil.ImageLoader
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import coil.request.SuccessResult
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.skydoves.cloudy.Cloudy
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import uz.adkhamjon.mobileprogrammingproject.R
+import uz.adkhamjon.mobileprogrammingproject.utils.AndroidDownloader
+import java.io.IOException
 
-const val DEFAULT = "Default"
+const val DEFAULT = "default"
+const val EDIT = "edit"
+const val SHARE = "share"
+const val DOWNLOAD = "download"
+const val WALLPAPER = "wallpaper"
+const val BACK = "back"
 
 @Destination
 @Composable
@@ -42,6 +60,47 @@ fun ImageScreen(
 ) {
     val optionTypes by remember {
         mutableStateOf(DEFAULT)
+    }
+    var actions by remember {
+        mutableStateOf("")
+    }
+    val rememberCoroutineScope = rememberCoroutineScope()
+    var drawable: Drawable? = null
+    val loading = ImageLoader(LocalContext.current)
+    val request = ImageRequest.Builder(LocalContext.current)
+        .data(image)
+        .build()
+    rememberCoroutineScope.launch {
+        drawable = (loading.execute(request) as SuccessResult).drawable
+    }
+    val context = LocalContext.current
+    when (actions) {
+        EDIT -> {
+
+        }
+        BACK -> {
+            navigator.popBackStack()
+            actions = ""
+        }
+        SHARE -> {
+            SharIntent(txt = image)
+            actions = ""
+        }
+        DOWNLOAD -> {
+            val downloader = AndroidDownloader(LocalContext.current)
+            downloader.downloadFile(image)
+            Toast.makeText(
+                LocalContext.current,
+                "Image Downloaded Successfully!!",
+                Toast.LENGTH_SHORT
+            ).show()
+            actions = ""
+        }
+        WALLPAPER -> {
+
+            setWallpaper(context, (drawable as BitmapDrawable).bitmap)
+            actions = ""
+        }
     }
     Box(
         modifier = Modifier.fillMaxSize()
@@ -62,11 +121,18 @@ fun ImageScreen(
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         BlurButton(
                             icon = Icons.Default.ArrowBack,
                             onClick = {
-                                navigator.popBackStack()
+                                actions = BACK
+                            }
+                        )
+                        BlurButton(
+                            icon = Icons.Default.Edit,
+                            onClick = {
+                                actions = EDIT
                             }
                         )
                     }
@@ -78,19 +144,19 @@ fun ImageScreen(
                         BlurButton(
                             icon = Icons.Default.KeyboardArrowDown,
                             onClick = {
-
+                                actions = DOWNLOAD
                             }
                         )
                         BlurButton(
                             icon = Icons.Default.Lock,
                             onClick = {
-
+                                actions = WALLPAPER
                             }
                         )
                         BlurButton(
                             icon = Icons.Default.Share
                         ) {
-                            //SharIntent(image)
+                            actions = SHARE
                         }
                     }
                 }
@@ -137,5 +203,15 @@ fun SharIntent(txt: String) {
 
     val chooserIntent = createChooser(shareIntent, "Share Image")
     LocalContext.current.startActivity(chooserIntent)
+}
 
+@Composable
+fun setWallpaper(context: Context, bitmap: Bitmap) {
+    val wallpaperManager = WallpaperManager.getInstance(context)
+    wallpaperManager.setBitmap(bitmap)
+    Toast.makeText(
+        context,
+        "Wallpaper Set Successfully!!",
+        Toast.LENGTH_SHORT
+    ).show()
 }
