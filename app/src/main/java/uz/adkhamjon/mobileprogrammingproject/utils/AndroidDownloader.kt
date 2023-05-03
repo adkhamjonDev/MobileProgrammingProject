@@ -14,7 +14,7 @@ class AndroidDownloader(
     fun downloadFile(url: String): Long {
         val request = DownloadManager.Request(url.toUri())
             .setMimeType("image/jpeg")
-            .setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI)
+            .setAllowedNetworkTypes(DownloadManager.Request.NETWORK_MOBILE)
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
             .setTitle("image.jpg")
             .addRequestHeader("Authorization", "Bearer <token>")

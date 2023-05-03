@@ -1,12 +1,17 @@
 package uz.adkhamjon.mobileprogrammingproject.ui.screens.main
 
+import android.content.Intent
+import android.net.Uri
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
@@ -15,13 +20,17 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.LoadState
@@ -40,6 +49,7 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import uz.adkhamjon.mobileprogrammingproject.R
 import uz.adkhamjon.mobileprogrammingproject.data.remote.dto.Hit
 import uz.adkhamjon.mobileprogrammingproject.ui.screens.destinations.ImageScreenDestination
 import uz.adkhamjon.mobileprogrammingproject.ui.screens.image.ImageScreen
@@ -51,9 +61,23 @@ fun MainScreen(
     navigator: DestinationsNavigator,
     mainViewModel: MainViewModel = hiltViewModel()
 ) {
+    var showDialog by remember { mutableStateOf(false) }
+    var openIntent by remember { mutableStateOf("") }
+    if (showDialog) {
+        CustomDialog({
+            showDialog = false
+        }, {
+            openIntent = it
+        })
+    }
+    if (openIntent.isNotBlank()) {
+        OpenWebPage(openIntent)
+        openIntent = ""
+        showDialog = false
+    }
     Column {
         Toolbar(info = {
-
+            showDialog = true
         })
         TabViewPager(
             mainViewModel,
@@ -186,6 +210,62 @@ fun ImagesScreen(
             }
         }
     }
+}
+
+@Composable
+fun CustomDialog(onDismiss: () -> Unit, textClicked: (String) -> Unit) {
+    var showDialog by remember { mutableStateOf(true) }
+
+    if (showDialog) {
+        Dialog(onDismissRequest = { showDialog = false; onDismiss() }) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFF0C0C0C))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Photo source",
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontStyle = FontStyle.Normal,
+                        modifier = Modifier.padding(start = 16.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Image(
+                        painter = painterResource(id = R.drawable.photo_src),
+                        contentDescription = "Logo",
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "https://pixabay.com/",
+                        color = Color.Blue,
+                        fontSize = 18.sp,
+                        fontStyle = FontStyle.Italic,
+                        modifier = Modifier.clickable {
+                            textClicked.invoke("https://pixabay.com/")
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun OpenWebPage(url: String) {
+    val browser = Intent().apply {
+        action = Intent.ACTION_VIEW
+        data = Uri.parse(url)
+    }
+    LocalContext.current.startActivity(browser)
 }
 
 fun <T : Any> LazyGridScope.itemsGrid(
