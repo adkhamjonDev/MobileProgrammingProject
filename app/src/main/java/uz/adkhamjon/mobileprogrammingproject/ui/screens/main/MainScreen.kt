@@ -61,23 +61,15 @@ fun MainScreen(
     navigator: DestinationsNavigator,
     mainViewModel: MainViewModel = hiltViewModel()
 ) {
-    var showDialog by remember { mutableStateOf(false) }
+
     var openIntent by remember { mutableStateOf("") }
-    if (showDialog) {
-        CustomDialog({
-            showDialog = false
-        }, {
-            openIntent = it
-        })
-    }
     if (openIntent.isNotBlank()) {
         OpenWebPage(openIntent)
         openIntent = ""
-        showDialog = false
     }
     Column {
         Toolbar(info = {
-            showDialog = true
+            openIntent = "https://pixabay.com/"
         })
         TabViewPager(
             mainViewModel,
@@ -108,10 +100,9 @@ fun Toolbar(
             modifier = Modifier.padding(start = 16.dp)
         )
 
-        Icon(
-            imageVector = Icons.Default.Info,
+        Image(
+            painter = painterResource(id = R.drawable.photo_src),
             contentDescription = "",
-            tint = Color.White,
             modifier = Modifier
                 .padding(end = 16.dp)
                 .size(24.dp)
@@ -207,53 +198,6 @@ fun ImagesScreen(
                         .padding(0.8.dp),
                     contentScale = ContentScale.Crop,
                 )
-            }
-        }
-    }
-}
-
-@Composable
-fun CustomDialog(onDismiss: () -> Unit, textClicked: (String) -> Unit) {
-    var showDialog by remember { mutableStateOf(true) }
-
-    if (showDialog) {
-        Dialog(onDismissRequest = { showDialog = false; onDismiss() }) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFF0C0C0C))
-            ) {
-                Column(
-                    modifier = Modifier
-                        .padding(24.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Photo source",
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontStyle = FontStyle.Normal,
-                        modifier = Modifier.padding(start = 16.dp)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Image(
-                        painter = painterResource(id = R.drawable.photo_src),
-                        contentDescription = "Logo",
-                        modifier = Modifier.size(48.dp)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = "https://pixabay.com/",
-                        color = Color.Blue,
-                        fontSize = 18.sp,
-                        fontStyle = FontStyle.Italic,
-                        modifier = Modifier.clickable {
-                            textClicked.invoke("https://pixabay.com/")
-                        }
-                    )
-                }
             }
         }
     }

@@ -14,4 +14,3 @@ dependencyResolutionManagement {
 }
 rootProject.name = "MobileProgrammingProject"
 include ':app'
-include ':openCV'
